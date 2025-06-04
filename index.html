@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Productivity Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .date-display {
+            color: #666;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 500px;
+            /* display: flex;
+            flex-direction: column; */
+                overflow-y: scroll;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            border-radius: 2px;
+        }
+
+        .tasks .section-title::before { background: #ff6b6b; }
+        .goals .section-title::before { background: #4ecdc4; }
+        .meetings .section-title::before { background: #45b7d1; }
+        .notes .section-title::before { background: #96ceb4; }
+
+        .section-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0 3px;
+        }
+
+        .btn-success {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #feca57;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .item-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .item-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .item-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .item-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .item-list::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        .item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .item-content {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .item-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            transition: width 0.3s ease;
+        }
+
+        .meeting-time {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .priority-high {
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .priority-medium {
+            border-left: 4px solid #feca57;
+        }
+
+        .priority-low {
+            border-left: 4px solid #4ecdc4;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .section {
+                height: 450px;
+                padding: 15px;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .section {
+                height: 400px;
+            }
+            
+            .item-actions {
+                flex-wrap: wrap;
+            }
+        }
+
+        .edit-mode {
+            background: #fff3cd !important;
+            border-color: #ffeaa7 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Personal Productivity Dashboard</h1>
+            <div class="date-display" id="currentDate"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedTasks">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayGoals">0</div>
+                <div class="stat-label">Today's Goals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="upcomingMeetings">0</div>
+                <div class="stat-label">Meetings Today</div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="section tasks">
+                <h2 class="section-title">📋 Tasks</h2>
+                <div class="section-content">
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="appTitle" placeholder="Task title">
+                        <select class="input-field" id="appPriority" style="max-width: 120px;">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addApplication()">Add</button>
+                    </div>
+                    <div class="item-list" id="applicationList"></div>
+                </div>
+            </div>
+
+            <div class="section goals">
+                <h2 class="section-title">🎯 Today's Goals</h2>
+                <div class="section-content">
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="goalTitle" placeholder="What's your goal for today?">
+                        <button class="btn btn-primary" onclick="addGoal()">Add Goal</button>
+                    </div>
+                    <div class="item-list" id="goalList"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="goalProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section meetings">
+                <h2 class="section-title">📅 Important Meetings</h2>
+                <div class="section-content">
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="meetingTitle" placeholder="Meeting title">
+                        <input type="time" class="input-field" id="meetingTime" style="max-width: 120px;">
+                        <button class="btn btn-primary" onclick="addMeeting()">Add</button>
+                    </div>
+                    <div class="item-list" id="meetingList"></div>
+                </div>
+            </div>
+
+            <div class="section notes">
+                <h2 class="section-title">📝 Quick Notes</h2>
+                <div class="section-content">
+                    <div class="input-group">
+                        <textarea class="input-field" id="noteText" placeholder="Add a quick note..." rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="addNote()" style="width: 100%; margin-bottom: 15px;">Add Note</button>
+                    <div class="item-list" id="noteList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let applications = JSON.parse(localStorage.getItem('applications')) || [];
+        let goals = JSON.parse(localStorage.getItem('goals')) || [];
+        let meetings = JSON.parse(localStorage.getItem('meetings')) || [];
+        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateDisplay();
+            renderAll();
+            updateStats();
+        });
+
+        function updateDateDisplay() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // Applications
+        function addApplication() {
+            const title = document.getElementById('appTitle').value.trim();
+            const priority = document.getElementById('appPriority').value;
+            
+            if (!title) return;
+
+            const app = {
+                id: generateId(),
+                title: title,
+                priority: priority,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            applications.push(app);
+            localStorage.setItem('applications', JSON.stringify(applications));
+            
+            document.getElementById('appTitle').value = '';
+            renderApplications();
+            updateStats();
+        }
+
+        function editApplication(id) {
+            const app = applications.find(a => a.id === id);
+            if (!app) return;
+
+            const newTitle = prompt('Edit application:', app.title);
+            if (newTitle && newTitle.trim()) {
+                app.title = newTitle.trim();
+                localStorage.setItem('applications', JSON.stringify(applications));
+                renderApplications();
+            }
+        }
+
+        function toggleApplication(id) {
+            const app = applications.find(a => a.id === id);
+            if (app) {
+                app.completed = !app.completed;
+                localStorage.setItem('applications', JSON.stringify(applications));
+                renderApplications();
+                updateStats();
+            }
+        }
+
+        function deleteApplication(id) {
+            if (confirm('Are you sure you want to delete this application?')) {
+                applications = applications.filter(a => a.id !== id);
+                localStorage.setItem('applications', JSON.stringify(applications));
+                renderApplications();
+                updateStats();
+            }
+        }
+
+        function renderApplications() {
+            const list = document.getElementById('applicationList');
+            list.innerHTML = '';
+
+            applications.forEach(app => {
+                const item = document.createElement('div');
+                item.className = `item priority-${app.priority} ${app.completed ? 'completed' : ''}`;
+                
+                item.innerHTML = `
+                    <div class="item-content">
+                        <div class="item-title">${app.title}</div>
+                        <div class="item-meta">Priority: ${app.priority.toUpperCase()} • Created: ${new Date(app.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-success" onclick="toggleApplication('${app.id}')" title="Mark as ${app.completed ? 'incomplete' : 'complete'}">
+                            ${app.completed ? '↺' : '✓'}
+                        </button>
+                        <button class="btn btn-small btn-warning" onclick="editApplication('${app.id}')" title="Edit">✎</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteApplication('${app.id}')" title="Delete">✕</button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        // Goals
+        function addGoal() {
+            const title = document.getElementById('goalTitle').value.trim();
+            if (!title) return;
+
+            const goal = {
+                id: generateId(),
+                title: title,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            goals.push(goal);
+            localStorage.setItem('goals', JSON.stringify(goals));
+            
+            document.getElementById('goalTitle').value = '';
+            renderGoals();
+            updateStats();
+            updateGoalProgress();
+        }
+
+        function editGoal(id) {
+            const goal = goals.find(g => g.id === id);
+            if (!goal) return;
+
+            const newTitle = prompt('Edit goal:', goal.title);
+            if (newTitle && newTitle.trim()) {
+                goal.title = newTitle.trim();
+                localStorage.setItem('goals', JSON.stringify(goals));
+                renderGoals();
+            }
+        }
+
+        function toggleGoal(id) {
+            const goal = goals.find(g => g.id === id);
+            if (goal) {
+                goal.completed = !goal.completed;
+                localStorage.setItem('goals', JSON.stringify(goals));
+                renderGoals();
+                updateStats();
+                updateGoalProgress();
+            }
+        }
+
+        function deleteGoal(id) {
+            if (confirm('Are you sure you want to delete this goal?')) {
+                goals = goals.filter(g => g.id !== id);
+                localStorage.setItem('goals', JSON.stringify(goals));
+                renderGoals();
+                updateStats();
+                updateGoalProgress();
+            }
+        }
+
+        function renderGoals() {
+            const list = document.getElementById('goalList');
+            list.innerHTML = '';
+
+            goals.forEach(goal => {
+                const item = document.createElement('div');
+                item.className = `item ${goal.completed ? 'completed' : ''}`;
+                
+                item.innerHTML = `
+                    <div class="item-content">
+                        <div class="item-title">${goal.title}</div>
+                        <div class="item-meta">Created: ${new Date(goal.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-success" onclick="toggleGoal('${goal.id}')" title="Mark as ${goal.completed ? 'incomplete' : 'complete'}">
+                            ${goal.completed ? '↺' : '✓'}
+                        </button>
+                        <button class="btn btn-small btn-warning" onclick="editGoal('${goal.id}')" title="Edit">✎</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteGoal('${goal.id}')" title="Delete">✕</button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        function updateGoalProgress() {
+            const totalGoals = goals.length;
+            const completedGoals = goals.filter(g => g.completed).length;
+            const progress = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
+            
+            document.getElementById('goalProgress').style.width = progress + '%';
+        }
+
+        // Meetings
+        function addMeeting() {
+            const title = document.getElementById('meetingTitle').value.trim();
+            const time = document.getElementById('meetingTime').value;
+            
+            if (!title) return;
+
+            const meeting = {
+                id: generateId(),
+                title: title,
+                time: time,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            meetings.push(meeting);
+            localStorage.setItem('meetings', JSON.stringify(meetings));
+            
+            document.getElementById('meetingTitle').value = '';
+            document.getElementById('meetingTime').value = '';
+            renderMeetings();
+            updateStats();
+        }
+
+        function toggleMeeting(id) {
+            const meeting = meetings.find(m => m.id === id);
+            if (meeting) {
+                meeting.completed = !meeting.completed;
+                localStorage.setItem('meetings', JSON.stringify(meetings));
+                renderMeetings();
+                updateStats();
+            }
+        }
+
+        function deleteMeeting(id) {
+            if (confirm('Are you sure you want to delete this meeting?')) {
+                meetings = meetings.filter(m => m.id !== id);
+                localStorage.setItem('meetings', JSON.stringify(meetings));
+                renderMeetings();
+                updateStats();
+            }
+        }
+
+        function renderMeetings() {
+            const list = document.getElementById('meetingList');
+            list.innerHTML = '';
+
+            // Sort meetings by time
+            const sortedMeetings = [...meetings].sort((a, b) => {
+                if (!a.time) return 1;
+                if (!b.time) return -1;
+                return a.time.localeCompare(b.time);
+            });
+
+            sortedMeetings.forEach(meeting => {
+                const item = document.createElement('div');
+                item.className = `item ${meeting.completed ? 'completed' : ''}`;
+                
+                item.innerHTML = `
+                    <div class="item-content">
+                        <div class="item-title">${meeting.title}</div>
+                        ${meeting.time ? `<div class="meeting-time">⏰ ${formatTime(meeting.time)}</div>` : ''}
+                        <div class="item-meta">Created: ${new Date(meeting.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-success" onclick="toggleMeeting('${meeting.id}')" title="Mark as ${meeting.completed ? 'incomplete' : 'complete'}">
+                            ${meeting.completed ? '↺' : '✓'}
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="deleteMeeting('${meeting.id}')" title="Delete">✕</button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        function formatTime(time) {
+            if (!time) return '';
+            const [hours, minutes] = time.split(':');
+            const hour12 = hours % 12 || 12;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${minutes} ${ampm}`;
+        }
+
+        // Notes
+        function addNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) return;
+
+            const note = {
+                id: generateId(),
+                text: text,
+                createdAt: new Date().toISOString()
+            };
+
+            notes.push(note);
+            localStorage.setItem('notes', JSON.stringify(notes));
+            
+            document.getElementById('noteText').value = '';
+            renderNotes();
+        }
+
+        function deleteNote(id) {
+            if (confirm('Are you sure you want to delete this note?')) {
+                notes = notes.filter(n => n.id !== id);
+                localStorage.setItem('notes', JSON.stringify(notes));
+                renderNotes();
+            }
+        }
+
+        function renderNotes() {
+            const list = document.getElementById('noteList');
+            list.innerHTML = '';
+
+            // Show latest notes first
+            const sortedNotes = [...notes].reverse();
+
+            sortedNotes.forEach(note => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                
+                item.innerHTML = `
+                    <div class="item-content">
+                        <div class="item-title">${note.text}</div>
+                        <div class="item-meta">Created: ${new Date(note.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-danger" onclick="deleteNote('${note.id}')" title="Delete">✕</button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        // Stats
+        function updateStats() {
+            const totalTasks = applications.length + goals.length;
+            const completedTasks = applications.filter(a => a.completed).length + goals.filter(g => g.completed).length;
+            
+            document.getElementById('totalTasks').textContent = totalTasks;
+            document.getElementById('completedTasks').textContent = completedTasks;
+            document.getElementById('todayGoals').textContent = goals.length;
+            document.getElementById('upcomingMeetings').textContent = meetings.filter(m => !m.completed).length;
+        }
+
+        // Render all sections
+        function renderAll() {
+            renderApplications();
+            renderGoals();
+            renderMeetings();
+            renderNotes();
+            updateGoalProgress();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        document.getElementById('appTitle').focus();
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        document.getElementById('goalTitle').focus();
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        document.getElementById('meetingTitle').focus();
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        document.getElementById('noteText').focus();
+                        break;
+                }
+            }
+        });
+
+        // Auto-save reminder
+        setInterval(() => {
+            console.log('Data auto-saved to localStorage');
+        }, 30000);
+    </script>
+</body>
+</html>
