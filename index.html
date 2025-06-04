@@ -72,9 +72,7 @@
             border: 1px solid #e0e0e0;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             height: 500px;
-            /* display: flex;
-            flex-direction: column; */
-                overflow-y: scroll;
+            overflow-y: scroll;
         }
 
         .section:hover {
@@ -207,6 +205,8 @@
             justify-content: space-between;
             align-items: center;
             transition: all 0.3s ease;
+            cursor: move;
+            user-select: none;
         }
 
         .item:hover {
@@ -219,6 +219,29 @@
             text-decoration: line-through;
             background: #d4edda;
             border-color: #c3e6cb;
+        }
+
+        .item.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+            z-index: 1000;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .item.drag-over {
+            border-top: 3px solid #667eea;
+            margin-top: 3px;
+        }
+
+        .drag-handle {
+            color: #ccc;
+            margin-right: 10px;
+            cursor: grab;
+            font-size: 16px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
         }
 
         .item-content {
@@ -455,6 +478,11 @@
         let meetings = JSON.parse(localStorage.getItem('meetings')) || [];
         let notes = JSON.parse(localStorage.getItem('notes')) || [];
 
+        // Drag and drop variables
+        let draggedElement = null;
+        let draggedIndex = null;
+        let draggedType = null;
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             updateDateDisplay();
@@ -475,6 +503,15 @@
 
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // Sort items function - completed items go to bottom
+        function sortItems(items) {
+            return [...items].sort((a, b) => {
+                if (a.completed && !b.completed) return 1;
+                if (!a.completed && b.completed) return -1;
+                return 0;
+            });
         }
 
         // Applications
@@ -535,11 +572,18 @@
             const list = document.getElementById('applicationList');
             list.innerHTML = '';
 
-            applications.forEach(app => {
+            const sortedApps = sortItems(applications);
+
+            sortedApps.forEach((app, index) => {
                 const item = document.createElement('div');
                 item.className = `item priority-${app.priority} ${app.completed ? 'completed' : ''}`;
+                item.draggable = true;
+                item.dataset.id = app.id;
+                item.dataset.index = index;
+                item.dataset.type = 'application';
                 
                 item.innerHTML = `
+                    <div class="drag-handle">⋮⋮</div>
                     <div class="item-content">
                         <div class="item-title">${app.title}</div>
                         <div class="item-meta">Priority: ${app.priority.toUpperCase()} • Created: ${new Date(app.createdAt).toLocaleDateString()}</div>
@@ -553,6 +597,7 @@
                     </div>
                 `;
                 
+                addDragListeners(item);
                 list.appendChild(item);
             });
         }
@@ -615,11 +660,18 @@
             const list = document.getElementById('goalList');
             list.innerHTML = '';
 
-            goals.forEach(goal => {
+            const sortedGoals = sortItems(goals);
+
+            sortedGoals.forEach((goal, index) => {
                 const item = document.createElement('div');
                 item.className = `item ${goal.completed ? 'completed' : ''}`;
+                item.draggable = true;
+                item.dataset.id = goal.id;
+                item.dataset.index = index;
+                item.dataset.type = 'goal';
                 
                 item.innerHTML = `
+                    <div class="drag-handle">⋮⋮</div>
                     <div class="item-content">
                         <div class="item-title">${goal.title}</div>
                         <div class="item-meta">Created: ${new Date(goal.createdAt).toLocaleDateString()}</div>
@@ -633,6 +685,7 @@
                     </div>
                 `;
                 
+                addDragListeners(item);
                 list.appendChild(item);
             });
         }
@@ -692,18 +745,24 @@
             const list = document.getElementById('meetingList');
             list.innerHTML = '';
 
-            // Sort meetings by time
-            const sortedMeetings = [...meetings].sort((a, b) => {
+            // Sort meetings by completion first, then by time
+            const sortedMeetings = sortItems(meetings).sort((a, b) => {
+                if (a.completed !== b.completed) return 0; // Keep completion sorting
                 if (!a.time) return 1;
                 if (!b.time) return -1;
                 return a.time.localeCompare(b.time);
             });
 
-            sortedMeetings.forEach(meeting => {
+            sortedMeetings.forEach((meeting, index) => {
                 const item = document.createElement('div');
                 item.className = `item ${meeting.completed ? 'completed' : ''}`;
+                item.draggable = true;
+                item.dataset.id = meeting.id;
+                item.dataset.index = index;
+                item.dataset.type = 'meeting';
                 
                 item.innerHTML = `
+                    <div class="drag-handle">⋮⋮</div>
                     <div class="item-content">
                         <div class="item-title">${meeting.title}</div>
                         ${meeting.time ? `<div class="meeting-time">⏰ ${formatTime(meeting.time)}</div>` : ''}
@@ -717,6 +776,7 @@
                     </div>
                 `;
                 
+                addDragListeners(item);
                 list.appendChild(item);
             });
         }
@@ -762,11 +822,16 @@
             // Show latest notes first
             const sortedNotes = [...notes].reverse();
 
-            sortedNotes.forEach(note => {
+            sortedNotes.forEach((note, index) => {
                 const item = document.createElement('div');
                 item.className = 'item';
+                item.draggable = true;
+                item.dataset.id = note.id;
+                item.dataset.index = index;
+                item.dataset.type = 'note';
                 
                 item.innerHTML = `
+                    <div class="drag-handle">⋮⋮</div>
                     <div class="item-content">
                         <div class="item-title">${note.text}</div>
                         <div class="item-meta">Created: ${new Date(note.createdAt).toLocaleString()}</div>
@@ -776,8 +841,128 @@
                     </div>
                 `;
                 
+                addDragListeners(item);
                 list.appendChild(item);
             });
+        }
+
+        // Drag and Drop functionality
+        function addDragListeners(item) {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragenter', handleDragEnter);
+            item.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.index);
+            draggedType = this.dataset.type;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            draggedElement = null;
+            draggedIndex = null;
+            draggedType = null;
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            if (this.dataset.type === draggedType) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            if (draggedElement !== this && this.dataset.type === draggedType) {
+                const dropIndex = parseInt(this.dataset.index);
+                const draggedId = draggedElement.dataset.id;
+                
+                // Reorder the items
+                reorderItems(draggedType, draggedId, dropIndex);
+            }
+
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        function reorderItems(type, draggedId, newIndex) {
+            let items;
+            
+            switch(type) {
+                case 'application':
+                    items = sortItems(applications);
+                    break;
+                case 'goal':
+                    items = sortItems(goals);
+                    break;
+                case 'meeting':
+                    items = sortItems(meetings);
+                    break;
+                case 'note':
+                    items = [...notes].reverse();
+                    break;
+                default:
+                    return;
+            }
+
+            // Find the dragged item
+            const draggedItemIndex = items.findIndex(item => item.id === draggedId);
+            if (draggedItemIndex === -1) return;
+
+            // Remove the dragged item and insert it at the new position
+            const draggedItem = items.splice(draggedItemIndex, 1)[0];
+            items.splice(newIndex, 0, draggedItem);
+
+            // Update the original arrays
+            switch(type) {
+                case 'application':
+                    applications = items;
+                    localStorage.setItem('applications', JSON.stringify(applications));
+                    renderApplications();
+                    break;
+                case 'goal':
+                    goals = items;
+                    localStorage.setItem('goals', JSON.stringify(goals));
+                    renderGoals();
+                    updateGoalProgress();
+                    break;
+                case 'meeting':
+                    meetings = items;
+                    localStorage.setItem('meetings', JSON.stringify(meetings));
+                    renderMeetings();
+                    break;
+                case 'note':
+                    notes = items.reverse();
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                    renderNotes();
+                    break;
+            }
+
+            updateStats();
         }
 
         // Stats
